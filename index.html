@@ -1,0 +1,343 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>sleek · coupon pulse</title>
+  <!-- Tailwind via CDN + tiny extra smoothness -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Font Awesome 6 (free) for clean icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+  <style>
+    /* custom micro-interactions & glassy touches */
+    body {
+      background: linear-gradient(145deg, #f1f5f9 0%, #e6edf7 100%);
+      min-height: 100vh;
+      font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    }
+    .glass-card {
+      background: rgba(255, 255, 255, 0.75);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      border: 1px solid rgba(255,255,255,0.5);
+      box-shadow: 0 20px 40px -12px rgba(0,20,40,0.25);
+    }
+    .countdown-chip {
+      background: rgba(10, 30, 50, 0.05);
+      backdrop-filter: blur(4px);
+      border: 1px solid rgba(255,255,255,0.3);
+    }
+    .activate-glow:hover {
+      box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.4), 0 8px 20px -8px #0e7c5b;
+      transition: all 0.15s ease;
+    }
+    .remaining-indicator {
+      transition: background 0.2s;
+    }
+  </style>
+</head>
+<body class="flex items-center justify-center p-4 sm:p-6">
+
+  <!-- main container – sleek single card -->
+  <div class="w-full max-w-lg mx-auto">
+
+    <!-- glassmorphic hero card -->
+    <div class="glass-card rounded-3xl overflow-hidden shadow-2xl">
+
+      <!-- header with icon + limited tag -->
+      <div class="px-7 pt-7 pb-3 flex items-center justify-between">
+        <div class="flex items-center gap-2">
+          <div class="bg-emerald-100 w-10 h-10 rounded-2xl flex items-center justify-center text-emerald-700">
+            <i class="fa-solid fa-ticket text-xl"></i>
+          </div>
+          <h1 class="text-2xl font-semibold tracking-tight text-slate-800">coupon·one</h1>
+        </div>
+        <div class="bg-amber-50 border border-amber-200/70 rounded-full px-4 py-1.5 text-sm font-medium text-amber-800 shadow-sm flex items-center gap-1.5">
+          <i class="fa-solid fa-bolt fa-xs"></i>
+          <span>limited amount</span>
+        </div>
+      </div>
+
+      <!-- description & stock (remembered) -->
+      <div class="px-7 pb-2">
+        <p class="text-slate-600 text-sm flex items-center gap-2">
+          <i class="fa-regular fa-clock text-slate-400"></i>
+          <span>activate while reserved · <span id="stockDisplay" class="font-semibold text-slate-800">--</span> left</span>
+        </p>
+      </div>
+
+      <!-- countdown area (3 days) + persistence -->
+      <div class="px-7 mt-2">
+        <div class="countdown-chip rounded-2xl p-4 bg-white/40 backdrop-blur-sm border border-white/40">
+          <div class="flex items-center justify-between text-sm uppercase tracking-wider text-slate-500 mb-1">
+            <span><i class="fa-regular fa-hourglass-half mr-1"></i> offer ends in</span>
+            <span class="text-xs bg-slate-200/60 px-2 py-0.5 rounded-full">3d countdown</span>
+          </div>
+          <!-- dynamic countdown numbers -->
+          <div class="flex gap-3 justify-between mt-1" id="countdownContainer">
+            <div class="flex-1 bg-white/70 rounded-xl py-2 text-center shadow-sm">
+              <span id="days" class="block text-3xl font-mono font-semibold text-slate-800">00</span>
+              <span class="text-xs text-slate-500">days</span>
+            </div>
+            <div class="flex-1 bg-white/70 rounded-xl py-2 text-center shadow-sm">
+              <span id="hours" class="block text-3xl font-mono font-semibold text-slate-800">00</span>
+              <span class="text-xs text-slate-500">hrs</span>
+            </div>
+            <div class="flex-1 bg-white/70 rounded-xl py-2 text-center shadow-sm">
+              <span id="minutes" class="block text-3xl font-mono font-semibold text-slate-800">00</span>
+              <span class="text-xs text-slate-500">mins</span>
+            </div>
+            <div class="flex-1 bg-white/70 rounded-xl py-2 text-center shadow-sm">
+              <span id="seconds" class="block text-3xl font-mono font-semibold text-slate-800">00</span>
+              <span class="text-xs text-slate-500">secs</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- coupon activation status + CTA block -->
+      <div class="px-7 pt-5 pb-8">
+
+        <!-- remaining / remembered activation state -->
+        <div id="activationState" class="mb-5 flex items-center gap-2 text-sm">
+          <!-- dynamic indicator injected via js -->
+        </div>
+
+        <!-- main activate button (triggers wsp + local update) -->
+        <button id="activateBtn" class="activate-glow w-full py-4 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-lg shadow-lg transition flex items-center justify-center gap-3">
+          <i class="fa-regular fa-hand-pointer"></i> activate coupon
+        </button>
+
+        <!-- footnote about auto-reply -->
+        <div class="mt-5 flex items-center justify-center gap-2 text-xs text-slate-500 border-t border-slate-200/70 pt-4">
+          <i class="fa-brands fa-whatsapp text-emerald-600 text-sm"></i>
+          <span>reply with coupon via WhatsApp <span class="font-mono">(5min)</span></span>
+        </div>
+      </div>
+    </div>
+
+    <!-- subtle wsp number hint -->
+    <p class="text-center text-xs text-slate-400 mt-4 flex items-center justify-center gap-2">
+      <i class="fa-solid fa-message"></i> business: 068 912 4033 · pre-filled message
+    </p>
+  </div>
+
+  <script>
+    (function() {
+      // --- constants & initial state ---
+      const STORAGE_KEY = 'couponPulse';
+      const WSP_NUMBER = '0689124033';     // clean number (without spaces)
+      const WSP_DISPLAY = '068 912 4033';
+      const PREPOPULATED_TEXT = 'Hi, please ACTIVATE my coupon immediately. Ref1521 😊✨';  // with emojis
+      const DEFAULT_STOCK = 7;            // arbitrary "limited amount"
+      const COUNTDOWN_DAYS = 3;            // 3 days from start
+
+      // helper: load or initialize state
+      function loadState() {
+        const stored = localStorage.getItem(STORAGE_KEY);
+        if (stored) {
+          try {
+            return JSON.parse(stored);
+          } catch (e) {
+            console.warn('invalid storage, reset');
+          }
+        }
+        // default fresh state
+        return {
+          activated: false,
+          stock: DEFAULT_STOCK,
+          countdownStart: Date.now(),          // reference for 3-day countdown
+          usedBefore: false
+        };
+      }
+
+      let state = loadState();
+
+      // save state to localStorage
+      function persistState() {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+      }
+
+      // --- countdown logic based on stored start ---
+      const COUNTDOWN_MS = COUNTDOWN_DAYS * 24 * 60 * 60 * 1000; // 3 days in ms
+
+      function getRemainingTime() {
+        const now = Date.now();
+        const start = state.countdownStart || now;
+        const end = start + COUNTDOWN_MS;
+        const remaining = Math.max(0, end - now);
+        return {
+          totalMs: remaining,
+          days: Math.floor(remaining / (1000 * 60 * 60 * 24)),
+          hours: Math.floor((remaining % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60)),
+          minutes: Math.floor((remaining % (1000 * 60 * 60)) / (1000 * 60)),
+          seconds: Math.floor((remaining % (1000 * 60)) / 1000),
+          expired: remaining <= 0
+        };
+      }
+
+      // update DOM countdown & handle expired look (optional)
+      function updateCountdownDisplay() {
+        const r = getRemainingTime();
+        document.getElementById('days').innerText = String(r.days).padStart(2, '0');
+        document.getElementById('hours').innerText = String(r.hours).padStart(2, '0');
+        document.getElementById('minutes').innerText = String(r.minutes).padStart(2, '0');
+        document.getElementById('seconds').innerText = String(r.seconds).padStart(2, '0');
+
+        // optional subtle hint if expired, but we keep it functional (you could block activation but spec says just countdown)
+        if (r.expired) {
+          document.getElementById('countdownContainer').classList.add('opacity-40');
+        } else {
+          document.getElementById('countdownContainer').classList.remove('opacity-40');
+        }
+      }
+
+      // update UI: stock, activation state message, button state
+      function refreshUI() {
+        // stock display
+        document.getElementById('stockDisplay').innerText = state.stock;
+
+        // activation state area (show if already activated)
+        const stateDiv = document.getElementById('activationState');
+        if (state.activated) {
+          stateDiv.innerHTML = `
+            <div class="w-full bg-emerald-50 border border-emerald-200 rounded-xl p-3 flex items-center gap-2 text-emerald-800">
+              <i class="fa-regular fa-circle-check text-emerald-600"></i>
+              <span class="font-medium">coupon activated</span>
+              <span class="text-xs ml-auto bg-emerald-200 px-2 py-1 rounded-full">pending delivery</span>
+            </div>
+          `;
+          // de-emphasize activate button if already used? But spec says can reactivate? we'll allow but update stock only once per activation?
+          // Better: keep button active, but each click will send wsp (limited amount style, but we prevent stock from going negative)
+          // We also keep track: each activation reduces stock (only if not activated before? But spec: "activate a coupon (limited amount)" – we allow repeated activations until stock zero.
+          // However "if user revisits all info is remembered" – stock persists. So we just use stock.
+          // But we also want to show "activated" state? To be sleek, we keep activated flag as "has ever activated"? 
+          // But to be intuitive, I'll keep two concepts: 'activated' means they have pressed at least once, but stock decreases each time until 0.
+          // Let's refine: remove "activated" bool, only rely on stock. But we also need to show pre-filled message.
+          // Simpler: remove `activated` bool and just use stock. but state.activated used for "already pressed" msg? I'll change to `lastActivation` optional.
+          // Better: rework – we will keep `state.stock` as source of truth. For "activation state" message, we show if stock < DEFAULT_STOCK.
+          // That's more consistent. We'll migrate: disregard `state.activated` (but preserve for old stores). 
+          // Ensure new state format without breaking. I'll change logic: after first activation, we just reduce stock.
+        } else {
+          // not activated (means stock untouched, but we also check if stock reduced earlier without activated flag)
+          // we use stock < DEFAULT_STOCK as indicator.
+          if (state.stock < DEFAULT_STOCK) {
+            stateDiv.innerHTML = `
+              <div class="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 flex items-center gap-2 text-slate-700">
+                <i class="fa-regular fa-clock text-slate-500"></i>
+                <span class="font-medium">coupon already requested · wait for whatsapp</span>
+              </div>
+            `;
+          } else {
+            stateDiv.innerHTML = `
+              <div class="w-full bg-white border border-slate-200/70 rounded-xl p-3 flex items-center gap-2 text-slate-600">
+                <i class="fa-regular fa-bell text-slate-400"></i>
+                <span class="font-medium">ready for activation · ${state.stock} left</span>
+              </div>
+            `;
+          }
+        }
+
+        // update button disable if stock <= 0? Sleek: allow but warn, but we disable to avoid negative stock.
+        const btn = document.getElementById('activateBtn');
+        if (state.stock <= 0) {
+          btn.disabled = true;
+          btn.classList.add('opacity-50', 'cursor-not-allowed', 'bg-emerald-400', 'hover:bg-emerald-400');
+          btn.classList.remove('hover:bg-emerald-700', 'activate-glow');
+        } else {
+          btn.disabled = false;
+          btn.classList.remove('opacity-50', 'cursor-not-allowed', 'bg-emerald-400');
+          btn.classList.add('hover:bg-emerald-700', 'activate-glow', 'bg-emerald-600');
+        }
+      }
+
+      // --- whatsapp deep link with pre populated msg + emojis ---
+      function openWhatsApp() {
+        // encode pre-filled text, add maybe Ref1521 and emojis already in constant
+        const encoded = encodeURIComponent(PREPOPULATED_TEXT);
+        const url = `https://wa.me/${WSP_NUMBER}?text=${encoded}`;
+        window.open(url, '_blank');
+      }
+
+      // --- activation handler (reduce stock, persist, update) ---
+      function handleActivate() {
+        if (state.stock <= 0) {
+          alert('Sorry, no coupons left. But you can still send a message.');
+          openWhatsApp(); // still open? maybe yes but stock zero
+          return;
+        }
+
+        // decrease stock
+        state.stock -= 1;
+        // also set a flag that activation happened (for message, but we use stock as indicator)
+        // keep countdownStart unchanged (still the original 3d from first visit)
+        persistState();
+
+        // refresh UI before opening wsp (so stock updates immediately)
+        refreshUI();
+        updateCountdownDisplay(); 
+
+        // open WhatsApp with pre populated message
+        openWhatsApp();
+
+        // after 5 min they get coupon — just ui note, no actual generation.
+        // small toast-like feedback? but we keep sleek, activation state shows "pending"
+      }
+
+      // --- initialise everything ---
+      function initialSetup() {
+        // ensure state.countdownStart is set (if first visit or corrupt)
+        if (!state.countdownStart || typeof state.countdownStart !== 'number') {
+          state.countdownStart = Date.now();
+        }
+        // ensure stock is a number, fallback
+        if (typeof state.stock !== 'number' || state.stock < 0) {
+          state.stock = DEFAULT_STOCK;
+        }
+        // ensure activated flag (legacy) – not needed but we can adapt UI: 
+        // we will ignore state.activated and rely on stock change.
+        // optionally delete activated to clean
+        if (state.hasOwnProperty('activated')) {
+          // we keep it but not use; better delete to avoid confusion
+          delete state.activated;
+        }
+        persistState();
+
+        // set up countdown ticker
+        updateCountdownDisplay();
+        setInterval(updateCountdownDisplay, 500); // smooth
+
+        // set up button listener
+        document.getElementById('activateBtn').addEventListener('click', handleActivate);
+
+        // reflect in UI
+        refreshUI();
+
+        // optional: if expired countdown, show message but still work.
+      }
+
+      // run
+      initialSetup();
+
+      // manual stock display in case of future refreshes — also syncs with storage
+      window.addEventListener('storage', (e) => {
+        if (e.key === STORAGE_KEY) {
+          // external update (rare) – reload state
+          try {
+            const newState = JSON.parse(e.newValue);
+            if (newState) state = newState;
+            refreshUI();
+            updateCountdownDisplay();
+          } catch (ex) {}
+        }
+      });
+
+    })();
+  </script>
+
+  <!-- extra micro explanation (transparent) -->
+  <div class="fixed bottom-2 left-0 w-full text-center text-[0.7rem] text-slate-400/60 pointer-events-none">
+    <span>⚡ remember everything · wsp auto-message: Ref1521 with emojis</span>
+  </div>
+</body>
+</html>
